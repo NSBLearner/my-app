@@ -1,0 +1,28 @@
+name: Deploy Frontend
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: docker build -t 9873907098/my-app -f Dockerfile.dev .
+      - run: docker run -e CI=true 9873907098/my-app npm test
+
+      - name: Generate deployment package
+        run: zip -r deploy.zip . -x '*.git*'
+
+      - name: Deploy to EB
+        uses: einaregilsson/beanstalk-deploy@v22
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_KEY }}
+          application_name: trn-frontend
+          environment_name: Trn-frontend-env
+          existing_bucket_name: elasticbeanstalk-eu-west-1-682426607174
+          region: eu-west-1
+          version_label: ${{ github.sha }}
+          deployment_package: deploy.zip
